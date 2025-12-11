@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Динамічна Таблиця (Лаб. 7)</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Стилі для кращого вигляду (CSS не є частиною вимог, але покращує UX) */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            cursor: pointer; /* Для клікабельних заголовків-сортувальників */
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Динамічна Таблиця Даних</h1>
+
+    <button id="update-button">Оновити Дані</button>
+    <button id="sort-name-button">Сортувати за Іменем</button>
+    <button id="sort-affiliation-button">Сортувати за Фракцією</button>
+
+    <table id="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th data-sort="name">Ім'я (Name)</th>
+                <th data-sort="affiliation">Фракція (Affiliation)</th>
+                <th>Роль (Role)</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+
+    <script>
+        const API_URL = "http://lab.vntu.org/api-server/lab7.php";
+        let currentData = []; // Змінна для зберігання отриманих даних
+
+        /**
+         * Функція для отримання даних з API та заповнення таблиці.
+         */
+        function fetchDataAndRender() {
+            // 1. Отримання значень за допомогою бібліотеки jQuery
+            $.getJSON(API_URL)
+                .done(function(data) {
+                    if (data && data.length > 0) {
+                        currentData = data; // Зберігаємо отримані дані
+                        renderTable(currentData);
+                        console.log("Дані успішно завантажено:", data);
+                    } else {
+                        $("#data-table tbody").html('<tr><td colspan="4">Не вдалося завантажити дані або вони порожні.</td></tr>');
+                    }
+                })
+                .fail(function(jqXHR, textStatus, errorThrown) {
+                    console.error("Помилка завантаження даних:", textStatus, errorThrown);
+                    $("#data-table tbody").html('<tr><td colspan="4">Помилка завантаження даних.</td></tr>');
+                });
+        }
+
+        /**
+         * Функція для відображення даних у таблиці.
+         * @param {Array} dataToRender - Масив об'єктів для відображення.
+         */
+        function renderTable(dataToRender) {
+            let tableBody = $("#data-table tbody");
+            tableBody.empty(); // Очищаємо таблицю перед заповненням
+
+            $.each(dataToRender, function(i, item) {
+                let row = '<tr>' +
+                            '<td>' + item.id + '</td>' +
+                            '<td>' + item.name + '</td>' +
+                            '<td>' + item.affiliation + '</td>' +
+                            '<td>' + item.role + '</td>' +
+                          '</tr>';
+                tableBody.append(row);
+            });
+        }
+
+        /**
+         * 3. Реалізація сортування.
+         * @param {string} sortParam - Параметр сортування ('name' або 'affiliation').
+         */
+        function sortData(sortParam) {
+            if (currentData.length === 0) {
+                alert("Спочатку завантажте дані!");
+                return;
+            }
+
+            // Використовуємо метод sort() для масиву
+            currentData.sort((a, b) => {
+                // Оскільки 'name' і 'affiliation' є рядками, використовуємо localeCompare
+                const valA = a[sortParam].toUpperCase();
+                const valB = b[sortParam].toUpperCase();
+
+                if (valA < valB) {
+                    return -1; // a має йти перед b
+                }
+                if (valA > valB) {
+                    return 1; // b має йти перед a
+                }
+                return 0; // порядок не змінюється
+            });
+
+            renderTable(currentData); // Перемальовуємо таблицю відсортованими даними
+        }
+
+        // --- Обробники Подій (jQuery) ---
+
+        // 2. Обробник для кнопки "Оновити Дані"
+        $("#update-button").on("click", fetchDataAndRender);
+
+        // Обробники для кнопок сортування
+        $("#sort-name-button").on("click", function() {
+            sortData('name');
+        });
+
+        $("#sort-affiliation-button").on("click", function() {
+            sortData('affiliation');
+        });
+
+        // Завантаження даних при першому завантаженні сторінки
+        $(document).ready(function() {
+            fetchDataAndRender();
+        });
+
+    </script>
+
+</body>
+</html>
